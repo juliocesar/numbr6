@@ -1,5 +1,5 @@
+#!/usr/bin/env ruby
 require 'socket'
-require 'ruby-debug'
 
 CONFIG = { :server => 'irc.freenode.net', :port   => 6667, :channel => 'nomodicum', :nick => "numbr6_#{rand(9999)}" }
 
@@ -37,4 +37,11 @@ class Numbr6
   end
 end
 
-Numbr6.new.run
+Numbr6.new.run unless $0 =~ /spec$/
+
+require 'spec'
+
+describe Numbr6 do
+  it "identifies itself and joins the channel in CONFIG after connecting" do
+  end  
+end
