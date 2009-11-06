@@ -31,7 +31,7 @@ class Numbr6
     end
   end
   
-  def identity_and_join!
+  def identify_and_join!
     @socket.puts "NICK #{CONFIG[:nick]}"
     @socket.puts "USER #{CONFIG[:nick]} 0 * :Number 5"
     @socket.puts "JOIN ##{CONFIG[:channel]}"    
