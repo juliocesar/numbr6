@@ -16,9 +16,10 @@ module Numbr6
   
   class Bot
     include Messages
-    def initialize
-      @socket = TCPSocket.new CONFIG[:server], CONFIG[:port]
+    def initialize(config = {})
+      @config = CONFIG.merge config
       @logger = Logger.new(STDOUT)
+      @socket = TCPSocket.new @config[:server], @config[:port]
       @reader = Thread.start do
         loop do
           if io = select([@socket], nil, nil) then process io[0][0].readline end
@@ -44,9 +45,9 @@ module Numbr6
     end
 
     def identify_and_join!
-      message "NICK #{CONFIG[:nick]}"
-      message "USER #{CONFIG[:nick]} 0 * :Number 5"
-      message "JOIN ##{CONFIG[:channel]}"    
+      message "NICK #{@config[:nick]}"
+      message "USER #{@config[:nick]} 0 * :Number 5"
+      message "JOIN ##{@config[:channel]}"    
     end
     
     def pong
@@ -65,11 +66,15 @@ if $0 =~ /spec$/
   require File.join(File.dirname(__FILE__), '..', 'spec', 'spec_helper')
 
   describe Numbr6 do
-    before do
-      @server = Numbr6::FauxIRCServer.new
+    before :all do
+      @server = Numbr6::FauxIRCServer.new 9999
     end
 
     it "identifies itself and joins the channel in CONFIG after connecting" do
+      @server.emulate :no_ident
+      @bot = Numbr6::Bot.new :server => '0.0.0.0', :port => 9999
+      # @bot.should_receive(:identify_and_join!)
+      @bot.run
     end  
   end
 end
