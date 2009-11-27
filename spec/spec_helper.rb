@@ -23,11 +23,9 @@ module Numbr6
     def emulate(response)
       Thread.new do
         client = @socket.accept
-        puts "accepted #{client.inspect}"
         client.write MESSAGES[response] + "\r\n"
-        puts "got: #{client.readline rescue nil}"
+        client.readline rescue nil # not important
         client.close
-        puts 
       end
     end
     
