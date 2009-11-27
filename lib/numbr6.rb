@@ -5,6 +5,7 @@ require 'logger'
 CONFIG = { :server => 'irc.freenode.net', :port   => 6667, :channel => 'nomodicum', :nick => "numbr6_#{rand(9999)}" }
 
 TCPSocket.do_not_reverse_lookup = true
+Thread.abort_on_exception = true
 
 module Numbr6
   module Messages
@@ -19,17 +20,23 @@ module Numbr6
     def initialize(config = {})
       @config = CONFIG.merge config
       @logger = Logger.new(STDOUT)
+    end
+
+    def run
+      @logger.info "Numbr6::Bot running..."
       @socket = TCPSocket.new @config[:server], @config[:port]
       @reader = Thread.start do
         loop do
           if io = select([@socket], nil, nil) then process io[0][0].readline end
         end
       end
-    end
-
-    def run
-      @logger.info "Numbr6::Bot running..."
       sleep
+    end
+    
+    def stop
+      @reader.kill!
+      @socket.close
+      @logger.info "Numbr6::Bot stopped!"
     end
 
     private
@@ -63,6 +70,7 @@ end
 
 if $0 =~ /spec$/
   require 'spec'
+  require 'timeout'
   require File.join(File.dirname(__FILE__), '..', 'spec', 'spec_helper')
 
   describe Numbr6 do
@@ -73,8 +81,8 @@ if $0 =~ /spec$/
     it "identifies itself and joins the channel in CONFIG after connecting" do
       @server.emulate :no_ident
       @bot = Numbr6::Bot.new :server => '0.0.0.0', :port => 9999
-      # @bot.should_receive(:identify_and_join!)
-      @bot.run
+      @bot.should_receive(:identify_and_join!)
+      timesout_shortly do @bot.run end
     end  
   end
 end
