@@ -13,8 +13,8 @@ module Numbr6
     PING      = /^PING /
     PRIVATE   = / PRIVMSG #{CONFIG[:nick]} /
     PUBLIC    = / PRIVMSG ##{CONFIG[:channel]}/
-  end  
-  
+  end
+
   class Bot
     include Messages
     def initialize(config = {})
@@ -32,7 +32,7 @@ module Numbr6
       end
       sleep
     end
-    
+
     def stop
       @reader.kill!
       @socket.close
@@ -54,14 +54,14 @@ module Numbr6
     def identify_and_join!
       message "NICK #{@config[:nick]}"
       message "USER #{@config[:nick]} 0 * :Number 5"
-      message "JOIN ##{@config[:channel]}"    
+      message "JOIN ##{@config[:channel]}"
     end
-    
+
     def pong
       @logger.debug "PONGing"
       message 'PONG irc'
     end
-    
+
     def message(data)
       @socket.puts data
     end
@@ -77,12 +77,23 @@ if $0 =~ /spec$/
     before :all do
       @server = Numbr6::FauxIRCServer.new 9999
     end
+    
+    after :each do
+      @bot.stop
+    end
 
     it "identifies itself and joins the channel in CONFIG after connecting" do
       @server.emulate :no_ident
       @bot = Numbr6::Bot.new :server => '0.0.0.0', :port => 9999
-      @bot.should_receive(:identify_and_join!)
+      @bot.should_receive :identify_and_join!
       timesout_shortly do @bot.run end
-    end  
+    end
+    
+    it "responds to PING requests from the server" do
+      @server.emulate :ping
+      @bot = Numbr6::Bot.new :server => '0.0.0.0', :port => 9999
+      @bot.should_receive :pong
+      timesout_shortly do @bot.run end
+    end
   end
 end

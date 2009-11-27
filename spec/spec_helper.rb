@@ -1,7 +1,7 @@
 module Numbr6
   MESSAGES = {
     :no_ident => "NOTICE AUTH :*** No identd (auth) response",
-    :ping     => nil
+    :ping     => "PING :card.freenode.net"
   }
   
   module UsefulForSpecs
