@@ -16,14 +16,15 @@ module Numbr6
   end
 
   class Bot
+    attr_accessor :logger
     include Messages
     def initialize(config = {})
       @config = CONFIG.merge config
-      @logger = Logger.new(STDOUT)
+      @logger = @config[:logger]
     end
 
     def run
-      @logger.info "Numbr6::Bot running..."
+      log :info, "Numbr6::Bot running..."
       @socket = TCPSocket.new @config[:server], @config[:port]
       @reader = Thread.start do
         loop do
@@ -36,13 +37,13 @@ module Numbr6
     def stop
       @reader.kill!
       @socket.close
-      @logger.info "Numbr6::Bot stopped!"
+      log :info, "Numbr6::Bot stopped!"
     end
 
     private
 
     def process(message)
-      @logger.debug message.sub(/\n$/, '')
+      log :debug, message.sub(/\n$/, '')
       case message
       when NO_IDENT
         identify_and_join!
@@ -58,19 +59,20 @@ module Numbr6
     end
 
     def pong
-      @logger.debug "PONGing"
       message 'PONG irc'
     end
 
     def message(data)
       @socket.puts data
     end
+    
+    def log(level, message)
+      @logger.send(level || :info, message) if @logger
+    end
   end
 end
 
 if $0 =~ /spec$/
-  require 'spec'
-  require 'timeout'
   require File.join(File.dirname(__FILE__), '..', 'spec', 'spec_helper')
 
   describe Numbr6 do

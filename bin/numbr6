@@ -3,4 +3,4 @@
 $:.unshift File.join(File.dirname(__FILE__), '..', 'lib')
 require 'numbr6'
 
-Numbr6::Bot.new.run
+Numbr6::Bot.new(:logger => Logger.new(STDOUT)).run

@@ -1,3 +1,6 @@
+require 'spec'
+require 'timeout'
+
 module Numbr6
   MESSAGES = {
     :no_ident => "NOTICE AUTH :*** No identd (auth) response",
@@ -27,11 +30,6 @@ module Numbr6
         client.readline rescue nil # not important
         client.close
       end
-    end
-    
-    def kill!
-      @socket.close
-      @worker.kill!
     end
   end  
 end
