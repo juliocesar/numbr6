@@ -2,7 +2,7 @@
 require 'socket'
 require 'logger'
 
-CONFIG = { :server => 'irc.freenode.net', :port   => 6667, :channel => 'nomodicum', :nick => "numbr6_#{rand(9999)}" }
+DEFAULTS = { :server => 'irc.freenode.net', :port   => 6667, :channel => 'nomodicum', :nick => "numbr6_#{rand(9999)}" }
 
 TCPSocket.do_not_reverse_lookup = true
 Thread.abort_on_exception = true
@@ -11,15 +11,15 @@ module Numbr6
   module Messages
     NO_IDENT  = /no ident/i
     PING      = /^PING /
-    PRIVATE   = / PRIVMSG #{CONFIG[:nick]} /
-    PUBLIC    = / PRIVMSG ##{CONFIG[:channel]}/
+    PRIVATE   = / PRIVMSG #{DEFAULTS[:nick]} /
+    PUBLIC    = / PRIVMSG ##{DEFAULTS[:channel]}/
   end
 
   class Bot
     attr_accessor :logger
     include Messages
     def initialize(config = {})
-      @config = CONFIG.merge config
+      @config = DEFAULTS.merge config
       @logger = @config[:logger]
     end
 
@@ -41,7 +41,6 @@ module Numbr6
     end
 
     private
-
     def process(message)
       log :debug, message.sub(/\n$/, '')
       case message
@@ -76,26 +75,43 @@ if $0 =~ /spec$/
   require File.join(File.dirname(__FILE__), '..', 'spec', 'spec_helper')
 
   describe Numbr6 do
-    before :all do
-      @server = Numbr6::FauxIRCServer.new 9999
-    end
-    
-    after :each do
-      @bot.stop
-    end
+    context "server responses (?)" do
+      before :all do
+        @server = Numbr6::FauxIRCServer.new 9999
+      end
 
-    it "identifies itself and joins the channel in CONFIG after connecting" do
-      @server.emulate :no_ident
-      @bot = Numbr6::Bot.new :server => '0.0.0.0', :port => 9999
-      @bot.should_receive :identify_and_join!
-      timesout_shortly do @bot.run end
+      it "identifies itself and joins the channel in CONFIG after connecting" do
+        @server.emulate :no_ident
+        @bot = Numbr6::Bot.new :server => '0.0.0.0', :port => 9999
+        @bot.should_receive :identify_and_join!
+        timesout_shortly do @bot.run end
+      end
+
+      it "responds to PING requests from the server" do
+        @server.emulate :ping
+        @bot = Numbr6::Bot.new :server => '0.0.0.0', :port => 9999
+        @bot.should_receive :pong
+        timesout_shortly do @bot.run end
+      end
     end
     
-    it "responds to PING requests from the server" do
-      @server.emulate :ping
-      @bot = Numbr6::Bot.new :server => '0.0.0.0', :port => 9999
-      @bot.should_receive :pong
-      timesout_shortly do @bot.run end
+    context "configuration" do
+      it "writes a YAML config file to $HOME/.numbr6rc on start if one doesn't exist"
+      it "parses a YAML config file from $HOME/.numbr6rc on startup"
+    end
+    
+    context "logs" do
+      it "writes a log file to $HOME/.numbr6/numbr6.log if no log location is specified"
+      it "writes a log file to a location specified in the config file if there's such a thing"
+    end
+    
+    context "tweets" do
+      it "tweets beer owings to an account specified in the config file"
+      it "figures how many beers a user is owed off of a Twitter search"
+    end
+    
+    context "private messages" do
+      it "responds with how many beers a user is owed on STAT"
     end
   end
 end

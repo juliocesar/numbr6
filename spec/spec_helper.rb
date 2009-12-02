@@ -30,7 +30,7 @@ module Numbr6
         client.readline rescue nil # not important
         client.close
       end
-    end
+    end    
   end  
 end
 
