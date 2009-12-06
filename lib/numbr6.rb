@@ -1,6 +1,8 @@
 #!/usr/bin/env ruby
 require 'socket'
 require 'logger'
+require 'fileutils'
+require 'yaml'
 
 DEFAULTS = { :server => 'irc.freenode.net', :port   => 6667, :channel => 'nomodicum', :nick => "numbr6_#{rand(9999)}" }
 
@@ -19,7 +21,7 @@ module Numbr6
     attr_accessor :logger
     include Messages
     def initialize(config = {})
-      @config = DEFAULTS.merge config
+      @config = DEFAULTS.merge(config)
       @logger = @config[:logger]
     end
 
@@ -31,15 +33,18 @@ module Numbr6
           if io = select([@socket], nil, nil) then process io[0][0].readline end
         end
       end
-      sleep
+      self
     end
 
     def stop
-      @reader.kill!
-      @socket.close
+      begin
+        @reader.kill!
+        @socket.close
+      rescue Exception
+      end
       log :info, "Numbr6::Bot stopped!"
     end
-
+    
     private
     def process(message)
       log :debug, message.sub(/\n$/, '')
@@ -68,50 +73,13 @@ module Numbr6
     def log(level, message)
       @logger.send(level || :info, message) if @logger
     end
-  end
-end
-
-if $0 =~ /spec$/
-  require File.join(File.dirname(__FILE__), '..', 'spec', 'spec_helper')
-
-  describe Numbr6 do
-    context "server responses (?)" do
-      before :all do
-        @server = Numbr6::FauxIRCServer.new 9999
-      end
-
-      it "identifies itself and joins the channel in CONFIG after connecting" do
-        @server.emulate :no_ident
-        @bot = Numbr6::Bot.new :server => '0.0.0.0', :port => 9999
-        @bot.should_receive :identify_and_join!
-        timesout_shortly do @bot.run end
-      end
-
-      it "responds to PING requests from the server" do
-        @server.emulate :ping
-        @bot = Numbr6::Bot.new :server => '0.0.0.0', :port => 9999
-        @bot.should_receive :pong
-        timesout_shortly do @bot.run end
-      end
+    
+    def write_config
+      File.open("#{ENV['HOME']}/.numbr6rc", 'w') { |f| f << @config.to_yaml }
     end
     
-    context "configuration" do
-      it "writes a YAML config file to $HOME/.numbr6rc on start if one doesn't exist"
-      it "parses a YAML config file from $HOME/.numbr6rc on startup"
-    end
-    
-    context "logs" do
-      it "writes a log file to $HOME/.numbr6/numbr6.log if no log location is specified"
-      it "writes a log file to a location specified in the config file if there's such a thing"
-    end
-    
-    context "tweets" do
-      it "tweets beer owings to an account specified in the config file"
-      it "figures how many beers a user is owed off of a Twitter search"
-    end
-    
-    context "private messages" do
-      it "responds with how many beers a user is owed on STAT"
+    def read_config
+      YAML.load_file("#{ENV['HOME']}/.numbr6rc") rescue nil
     end
   end
 end

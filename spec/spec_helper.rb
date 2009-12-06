@@ -1,40 +1,33 @@
 require 'spec'
 require 'timeout'
+require File.join(File.dirname(__FILE__), '..', 'lib', 'numbr6')
 
-module Numbr6
-  MESSAGES = {
-    :no_ident => "NOTICE AUTH :*** No identd (auth) response",
-    :ping     => "PING :card.freenode.net"
-  }
-  
-  module UsefulForSpecs
-    def timesout_shortly(&block)
-      begin
-        Timeout.timeout(0.1) { yield block } rescue nil
-      rescue TimeoutError
-        # do nothing
-      end
-    end
-    
+class Fauxy
+  def initialize(port = 9999)
+    @messages = {}
+    @socket = TCPServer.new '0.0.0.0', port
+    @clients = []
   end
   
-  class FauxIRCServer
-    def initialize(port = 9999)
-      @socket = TCPServer.new '0.0.0.0', port
-    end
-    
-    def emulate(response)
-      Thread.new do
-        client = @socket.accept
-        client.write MESSAGES[response] + "\r\n"
-        client.readline rescue nil # not important
-        client.close
+  def run  
+    @responder = Thread.new do
+      loop do
+        Thread.start(@socket.accept) do |client|
+          @clients << client
+        end
       end
-    end    
-  end  
+    end
+    self
+  end
+  
+  def broadcast(message)
+    @clients.each do |client|
+      client.puts message
+    end
+  end
+    
+  def stop
+    @socket.close
+    @responder.kill
+  end
 end
-
-Spec::Runner.configure do |config|
-  config.include Numbr6::UsefulForSpecs
-end
-
