@@ -13,8 +13,8 @@ module Numbr6
   module Messages
     NO_IDENT  = /no ident/i
     PING      = /^PING /
-    PRIVATE   = / PRIVMSG #{DEFAULTS[:nick]} /
-    PUBLIC    = / PRIVMSG ##{DEFAULTS[:channel]}/
+    PRIVATE   = /PRIVMSG #{DEFAULTS[:nick]} /
+    THANK     = /:([^!]+).+ PRIVMSG ##{DEFAULTS[:channel]} :ACTION thanks (\w+) (.+)/
   end
 
   class Bot
@@ -53,7 +53,14 @@ module Numbr6
         identify_and_join!
       when PING
         pong
+      when THANK
+        all, user, who, reason = *THANK.match(message)
+        thank user, who, reason
       end
+    end
+    
+    def thank(user, who, reason)
+      
     end
 
     def identify_and_join!
@@ -63,6 +70,7 @@ module Numbr6
     end
 
     def pong
+      log :debug, 'pong!'
       message 'PONG irc'
     end
 

@@ -19,6 +19,13 @@ describe Numbr6::Bot do
     sleep 0.1
   end
   
+  it "can recognize when someone thanks someone" do
+    @bot.should_receive :thank
+    @server.broadcast ":julio!n=julio@ppp245-110.static.internode.on.net PRIVMSG #nomodicum :ACTION thanks foo for bar"
+    sleep 0.1
+  end
+  
+  
   it "writes a YAML config file to $HOME/.numbr6rc on start if one doesn't exist"   
   it "parses a YAML config file from $HOME/.numbr6rc on startup"
 
