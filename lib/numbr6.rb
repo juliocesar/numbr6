@@ -3,6 +3,8 @@ require 'socket'
 require 'logger'
 require 'fileutils'
 require 'yaml'
+gem 'twitter4r', '0.3.2'
+require 'twitter'
 
 DEFAULTS = { :server => 'irc.freenode.net', :port   => 6667, :channel => 'nomodicum', :nick => "numbr6_#{rand(9999)}" }
 
@@ -10,18 +12,15 @@ TCPSocket.do_not_reverse_lookup = true
 Thread.abort_on_exception = true
 
 module Numbr6
-  module Messages
-    NO_IDENT  = /no ident/i
-    PING      = /^PING /
-    PRIVATE   = /PRIVMSG #{DEFAULTS[:nick]} /
-    THANK     = /:([^!]+).+ PRIVMSG ##{DEFAULTS[:channel]} :ACTION thanks (\w+) (.+)/
-  end
-
   class Bot
     attr_accessor :logger
-    include Messages
     def initialize(config = {})
-      @config = DEFAULTS.merge(config)
+      @config = DEFAULTS.merge(read_config || {}).merge(config)
+      if @config[:twitter]
+        @twitter = Twitter::Client.new :login => @config[:twitter][:login], :password => @config[:twitter][:password]
+      else
+        log :warn, "No Twitter account info found. Owings won't be saved"
+      end
       @logger = @config[:logger]
     end
 
@@ -47,20 +46,31 @@ module Numbr6
     
     private
     def process(message)
-      log :debug, message.sub(/\n$/, '')
+      puts "GOT: #{message}"
+      log :debug, message.strip!
       case message
-      when NO_IDENT
+      when /no ident/i
         identify_and_join!
-      when PING
+      when /^PING /
         pong
-      when THANK
-        all, user, who, reason = *THANK.match(message)
-        thank user, who, reason
+      when /:([^!]+).+ PRIVMSG ##{@config[:channel]} :ACTION thanks (\w+) (.+)/
+        # puts 'got THANK'
+        # all, user, who, reason = *THANK.match(message)
+        # thank user, who, reason
+        # say "#{user} owes #{who} a beer #{reason}"
+      when /PRIVMSG #{@config[:nick]} /
+        
       end
     end
     
     def thank(user, who, reason)
-      
+      return false if user == who
+      log :info, "#{user} thanks #{who} #{reason}"
+      @twitter.status :post, "#{user} thanks #{who} #{reason}"
+    end
+    
+    def say(message)
+      message "PRIVMSG ##{@config[:channel]} :#{message}"
     end
 
     def identify_and_join!
@@ -80,10 +90,6 @@ module Numbr6
     
     def log(level, message)
       @logger.send(level || :info, message) if @logger
-    end
-    
-    def write_config
-      File.open("#{ENV['HOME']}/.numbr6rc", 'w') { |f| f << @config.to_yaml }
     end
     
     def read_config
