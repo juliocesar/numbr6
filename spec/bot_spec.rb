@@ -29,11 +29,17 @@ describe Numbr6::Bot do
     @server.broadcast ":julio!n=julio@ppp245-110.static.internode.on.net PRIVMSG #nomodicum :ACTION thanks foo for bar"
     sleep 0.1
   end
-
+  
+  it "figures how many beers a user is owed off of a Twitter search" do
+    twitter = @bot.instance_variable_get(:@twitter)
+    twitter.stub(:search).and_return([])
+    @bot.instance_variable_get(:@twitter).should_receive :search
+    @server.broadcast ":julio!n=julio@67-207-128-123.slicehost.net PRIVMSG #nomodicum :#{@bot.config[:nick]}: stat"
+    sleep 0.1
+  end
+  
   it "writes a log file to $HOME/.numbr6/numbr6.log if no log location is specified"
   it "writes a log file to a location specified in the config file if there's such a thing"
-
-  it "figures how many beers a user is owed off of a Twitter search"
 
   it "responds with how many beers a user is owed on STAT"
 end

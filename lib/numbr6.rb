@@ -13,7 +13,7 @@ Thread.abort_on_exception = true
 
 module Numbr6
   class Bot
-    attr_accessor :logger
+    attr_accessor :logger, :config
     def initialize(config = {})
       @config = DEFAULTS.merge(read_config || {}).merge(config)
       if @config[:twitter]
@@ -46,31 +46,38 @@ module Numbr6
     
     private
     def process(message)
-      puts "GOT: #{message}"
       log :debug, message.strip!
       case message
       when /no ident/i
         identify_and_join!
       when /^PING /
         pong
-      when /:([^!]+).+ PRIVMSG ##{@config[:channel]} :ACTION thanks (\w+) (.+)/
-        # puts 'got THANK'
-        # all, user, who, reason = *THANK.match(message)
-        # thank user, who, reason
-        # say "#{user} owes #{who} a beer #{reason}"
-      when /PRIVMSG #{@config[:nick]} /
-        
+      when /:([^!]+).+ PRIVMSG ##{@config[:channel]} :.* thanks (\w+) (.+)/
+        user, who, reason = $1, $2, $3
+        thank user, who, reason
+        say "#{user} owes #{who} a beer #{reason}"
+      when /:([^!]+).+ PRIVMSG ##{@config[:channel]} :#{@config[:nick]}[:\s]*stat/
+        count = total_beers_for $1
+        say "#{$1}: You're owed #{count} beers."
       end
     end
     
     def thank(user, who, reason)
       return false if user == who
-      log :info, "#{user} thanks #{who} #{reason}"
-      @twitter.status :post, "#{user} thanks #{who} #{reason}"
+      if @twitter
+        log :info, "#{user} thanks #{who} #{reason}"
+        @twitter.status :post, "#{user} owes #{who} a beer #{reason}"
+      else
+        log :warn, "This humble bot cannot tweet without a Twitter account"
+      end
     end
     
     def say(message)
       message "PRIVMSG ##{@config[:channel]} :#{message}"
+    end
+    
+    def total_beers_for(user)
+      @twitter.search(:q => "#{user} thanks", :from => @config[:nick]).length
     end
 
     def identify_and_join!
