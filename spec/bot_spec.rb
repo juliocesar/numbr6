@@ -3,7 +3,7 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 describe Numbr6::Bot do
   before :all do
     @server = Fauxy.new.run
-    @bot = Numbr6::Bot.new :server => '0.0.0.0', :port => 9999
+    @bot = Numbr6::Bot.new :server => '0.0.0.0', :port => 9999, :twitter => { :login => 'foo', :password => 'bar' }
     @bot.run
   end
 
@@ -25,6 +25,8 @@ describe Numbr6::Bot do
   end
 
   it "tweets beer owings to an account specified in the config file" do
+    twitter = @bot.instance_variable_get(:@twitter)
+    twitter.stub(:status).and_return(!!??)
     @bot.instance_variable_get(:@twitter).should_receive :status
     @server.broadcast ":julio!n=julio@ppp245-110.static.internode.on.net PRIVMSG #nomodicum :ACTION thanks foo for bar"
     sleep 0.1
@@ -33,7 +35,7 @@ describe Numbr6::Bot do
   it "figures how many beers a user is owed off of a Twitter search" do
     twitter = @bot.instance_variable_get(:@twitter)
     twitter.stub(:search).and_return([])
-    @bot.instance_variable_get(:@twitter).should_receive :search
+    twitter.should_receive :search
     @server.broadcast ":julio!n=julio@67-207-128-123.slicehost.net PRIVMSG #nomodicum :#{@bot.config[:nick]}: stat"
     sleep 0.1
   end
